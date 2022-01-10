@@ -39,11 +39,12 @@ mongoose.connect('mongodb://localhost:27017/lrtry',
 
 const userSchema =new mongoose.Schema( {
     email : String,
-    password : String
+    password : String,
+    secret :String
 });
 
 userSchema.plugin(passportLocalMongoose);
-
+ 
 const User=new mongoose.model("User",userSchema);
 
 passport.use(User.createStrategy());
@@ -69,12 +70,57 @@ app.get('/logout', function(req, res){
 app.get("/secrets",function(req,res){
     if(req.isAuthenticated())
     {
-        res.render("secrets");
+        User.find({"secret" :{$ne:null} },function(err,users){
+            if(err)
+            {
+                console.log(err);
+            }
+            else
+            {
+                console.log(users);
+                if(users)
+                {
+                    res.render("secrets",{users : users});
+                }
+            }
+        });
+       
     }
     else
     {
         res.redirect("/login");
     }
+})
+app.get("/submit",function(req,res){
+    if(req.isAuthenticated())
+    {
+        res.render("submit");
+    }
+    else
+    {
+        res.redirect("/login");
+    }
+})
+
+app.post("/submit",function(req,res){
+    const text=req.body.secret;
+    User.findById(req.user.id,function(err,foundUser){
+        if(err)
+        {
+            console.log(err);
+        }
+        else
+        {
+            if(foundUser)
+            {
+                foundUser.secret=text;
+                foundUser.save(function(){
+                    res.redirect("/secrets")
+                })
+            }
+
+        }
+    })
 })
 
 
